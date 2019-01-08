@@ -1,5 +1,6 @@
 // te pliki będą wyłączone z projektu
 
-img/
+// img/
 *.rar
 test.png
+__pycache__/
