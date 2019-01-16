@@ -50,11 +50,16 @@ def count_coins(im_url, tests=False, display_steps=False):
 
     # przeksztalcenie morfologiczne - zamkniecie
     import numpy as np
-    kernel = np.ones((3, 3),np.uint8)
+    kernel = np.ones((5, 5),np.uint8)
     closing = cv2.morphologyEx(test_bin, cv2.MORPH_CLOSE, kernel, iterations=1)
+    # kernel = np.ones((5,5),np.uint8)
+    # erosion = cv2.erode(closing,kernel,iterations = 5)
+
     if display_steps:
         display_img(closing)
+        # display_img(erosion)
 
+    kernel = np.ones((5,5),np.uint8)
     sure_bg = cv2.dilate(closing,kernel,iterations=3)
     # Znajdowanie pewnego pierwszego planu
     dist_transform = cv2.distanceTransform(closing,cv2.DIST_L2,3)
