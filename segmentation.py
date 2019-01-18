@@ -4,21 +4,21 @@ from functools import partial
 import cv2
 
 image = np.array([
-    [1,1,1,0,0,0,0,1],
-    [1,1,1,0,0,0,0,1],
-    [0,1,0,0,0,0,1,1],
-    [0,1,1,0,0,1,1,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,1,1,0,0,0],
-    [1,1,0,1,1,1,0,0],
-    [0,0,0,1,1,0,0,0],
+    [1,0,0,0,1,0,0,1],
+    [1,0,0,1,1,0,0,1],
+    [1,1,0,0,0,0,1,1],
+    [1,1,0,0,1,1,1,0],
+    [1,1,1,0,0,0,0,0],
+    [0,0,1,0,0,0,1,0],
+    [1,0,1,0,0,0,1,1],
+    [0,0,1,0,0,0,1,0],
 ])
 
 current_index = 0
 
 
 im = cv2.imread('ksztalty.png')
-im = cv2.resize(im, (512,256)) 
+# im = cv2.resize(im, (512,256)) 
 grey = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
 th, bin = cv2.threshold(grey,0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
 
@@ -31,12 +31,14 @@ def splitting(image):
     new_indices = clear_indices(indices)
 
     new_image = color_objects(image, new_indices)
-    cv2.imwrite('test.png',new_image)
+    # cv2.imwrite('test.png',new_image)
 
     print(image)
     print(indices)
+    #             y,x
+    print(indices[3,6])
     print(new_indices)
-    print(new_image)
+    return new_image
 
 def split(chunk, level=0):
     global current_index
@@ -69,37 +71,72 @@ def split(chunk, level=0):
 def merge(image, indices):
     LUT = np.zeros_like(image, bool)
 
-    for x in range(len(indices[0])):
-        for y in range(len(indices)):
+    for y in range(len(indices)):
+        # ostatni nie ustawiony
+        last = None
+        for x in range(len(indices[0])):
+
+            if last is not None:
+                if image[y, last] != image[y, x]:
+                    # ustaw indeks wszystkich poprzednich
+                    for index in range(x-1, last-1, -1):
+                        indices[y,index] = indices[y, last]
+                        print('Ustawiam(poprzedni)')
+                        print(f'y: {y}, x: {index} last: {last}')
+                        print(f'Ustawiam na {indices[y,last]}')
+                    last = None
 
             directions = []
             if (y - 1) >= 0:
-                directions.append((x, y - 1))
-            if (x - 1) >= 0:
-                directions.append((x-1, y))
+                directions.append((y-1, x))
+            # if (x - 1) >= 0:
+            #     directions.append((y, x - 1))
             # up = x, y-1
-            directions.append((x, y+1))
-            directions.append((x+1, y))
+            # directions.append((x, y+1))
+            # directions.append((x+1, y))
 
             close_set = None
             for d in directions:
-                try:
-                    if LUT[d] and image[d] == image[x,y]:
+                try: # jesli znalazlem sasiada -> zapamietuje
+                    if LUT[d] and image[d] == image[y,x]:
                         close_set = d
                         break
                 except IndexError:
                     pass
             
             if close_set is not None:
-                indices[x,y] = indices[close_set]
-            
-            for d in directions:
+                # ustawiam index od sasiada
+                indices[y,x] = indices[close_set]
+
+                # ustawiam indeks na prawo
                 try:
-                    if not LUT[d] and image[d] == image[x,y]:
-                        indices[d] = indices[x,y]
-                        LUT[d] = True
+                    if(image[y, x+1] == image[y,x]):
+                        indices[y,x+1] = indices[close_set]
                 except IndexError:
                     pass
+
+                # ustaw wszystkie poprzednie piksele
+                # na ten indeks
+                if last is not None:
+                    for index in range(x-1, last-1, -1):
+                        indices[y,index] = indices[close_set]
+                        print('Ustawiam(sasiad)')
+                        print(f'y: {y}, x: {index} last: {last}')
+                        print(f'Ustawiam na {indices[close_set]}')
+                    last = None
+            
+            elif last is None:
+                # zapamietuje ten indeks, jesli juz nie jest zapamietany
+                last = x
+
+            # ustawiam index sasiadom
+            # for d in directions:
+            #     try:
+            #         if not LUT[d] and image[d] == image[y,x]:
+            #             indices[d] = indices[y,x]
+            #             LUT[d] = True
+            #     except IndexError:
+            #         pass
 
             LUT[y,x] = True
 
@@ -112,13 +149,11 @@ def clear_indices(indices):
     index = 2
     while(True):
         new_tab = copy_ind[copy_ind > index]
-        print(new_tab)
         if(len(new_tab) == 0):
             print('Nie ma juz wiecej indeksow')
             break
         min_index = np.amin(new_tab)
 
-        # print(len(indices[indices == 9]))
         copy_ind[copy_ind == min_index] = index    
         index+=1
 
@@ -136,4 +171,4 @@ def color_objects(image, indices):
 
 # splitting(image)
 
-splitting(bin)
+cv2.imwrite('test.png',splitting(bin))
