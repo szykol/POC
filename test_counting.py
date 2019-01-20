@@ -16,6 +16,7 @@ class TestCounting(unittest.TestCase):
     def test_incorrect_name(self):
         """Sprawdza czy funkcja zwraca błąd gdy nie ma takiego pliku"""
         self.assertRaises(ValueError, self.func, 'img/nie_istnieje.jpg')
+        self.assertRaises(ValueError, counting.get_coin_size_in_pixels, 'img/nie_istnieje.jpg')
 
     def test_incorrect_type(self):
         """Sprawdza czy funkcja zwraca błąd gdy typ danych jest niepoprawny"""
@@ -23,3 +24,6 @@ class TestCounting(unittest.TestCase):
         self.assertRaises(TypeError, self.func, 5)
         self.assertRaises(TypeError, self.func, 5.5)
     
+        self.assertRaises(TypeError, counting.get_coin_size_in_pixels, True)
+        self.assertRaises(TypeError, counting.get_coin_size_in_pixels, 5)
+        self.assertRaises(TypeError, counting.get_coin_size_in_pixels, 5.5)
