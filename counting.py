@@ -1,9 +1,10 @@
 #%%
 import matplotlib.pyplot as plt
-from skimage import io
-import scipy
-from scipy import misc
 import cv2
+import pickle
+import scipy
+from skimage import io
+from scipy import misc
 
 #%%
 def display_img(im, title='default', cmap='gray'):
@@ -69,64 +70,6 @@ def series_of_transformations(im, tests=False, display_steps=False):
 
 
 #%%
-def count_coins(im_url, tests=False, display_steps=False):
-    """Funkcja przekształcająca obrazek i licząca ile monet znajduje sie na obrazku"""
-    if not isinstance(im_url, str):
-        raise TypeError(f'Nie podano prawidłowego typu danych. Oczekiwano (str), a otrzymano ({type(im_url)}).')
-
-    global current_index
-    current_index = 0
-
-    if tests:
-        display_steps = False
-    # załadowanie oryginalnego obrazka
-    # test_image = io.imread('test_rozdzielnie.jpg')
-    #test_image = io.imread('img/Obraz (11).jpg')
-
-    try:
-        test_image = io.imread(im_url)
-    except FileNotFoundError:
-        raise ValueError('Nie podano prawidłowego pliku!')
-    
-    #test_image_small = cv2.resize(test_image,None,fx=0.2,fy=0.2)
-    
-    sure_fg = series_of_transformations(test_image, tests=tests, display_steps=display_steps)
-
-    # count = splitting(sure_fg)
-    indices = sure_fg.astype(int)
-    # indices = sure_fg.copy()
-    
-    
-    indices = split(indices)     
-    # print(indices) 
-    indices[sure_fg == 0] = -1
-    merge(sure_fg, indices)
-    # ustawianie tla na zerowy indeks
-
-    # czyszczenie indeksow
-    new_indices = clear_indices(indices)
-
-
-    # new_image = color_objects(image, new_indices)
-    
-    count = len(np.unique(new_indices)) - 1
-    for i in range(count + 1):
-        color_index(sure_fg, new_indices, i)
-
-
-    # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
-    unique, counts = np.unique(new_indices, return_counts=True)
-    occurances = dict(zip(unique, counts))
-    print(occurances)
-
-    #{0: 7, 1: 4, 2: 1, 3: 2, 4: 1}
-
-    # display_img(sure_fg)
-
-    print(f'Wykryto {count} obiekty/ów na obrazie')
-
-    return count
-
 
 # segmentacja
 
@@ -276,7 +219,7 @@ def get_coin_size_in_pixels(im_url):
         raise ValueError('Nie podano prawidłowego pliku!')
     
     coin_im = series_of_transformations(test_image, tests=True)
-    display_img(coin_im)
+    # display_img(coin_im)
 
     indices = coin_im.astype(int)
     # indices = sure_fg.copy()
@@ -294,9 +237,84 @@ def get_coin_size_in_pixels(im_url):
     # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
     unique, counts = np.unique(new_indices, return_counts=True)
     occurances = dict(zip(unique, counts))
-    print(occurances)
+    # print(occurances)
 
     return occurances[0]
+
+#%% https://stackoverflow.com/questions/19201290/how-to-save-a-dictionary-to-a-file
+def save_obj(obj, name ):
+    with open('obj/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+
+#%%
+def count_coins(im_url, tests=False, display_steps=False):
+    """Funkcja przekształcająca obrazek i licząca ile monet znajduje sie na obrazku"""
+    if not isinstance(im_url, str):
+        raise TypeError(f'Nie podano prawidłowego typu danych. Oczekiwano (str), a otrzymano ({type(im_url)}).')
+
+    global current_index
+    current_index = 0
+
+    if tests:
+        display_steps = False
+    # załadowanie oryginalnego obrazka
+    # test_image = io.imread('test_rozdzielnie.jpg')
+    #test_image = io.imread('img/Obraz (11).jpg')
+
+    try:
+        test_image = io.imread(im_url)
+    except FileNotFoundError:
+        raise ValueError('Nie podano prawidłowego pliku!')
+    
+    #test_image_small = cv2.resize(test_image,None,fx=0.2,fy=0.2)
+    
+    sure_fg = series_of_transformations(test_image, tests=tests, display_steps=display_steps)
+
+    # count = splitting(sure_fg)
+    indices = sure_fg.astype(int)
+    # indices = sure_fg.copy()
+    
+    
+    indices = split(indices)     
+    # print(indices) 
+    indices[sure_fg == 0] = -1
+    merge(sure_fg, indices)
+    # ustawianie tla na zerowy indeks
+
+    # czyszczenie indeksow
+    new_indices = clear_indices(indices)
+
+
+    # new_image = color_objects(image, new_indices)
+    
+    count = len(np.unique(new_indices)) - 1
+    for i in range(count + 1):
+        color_index(sure_fg, new_indices, i)
+
+
+    # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
+    unique, counts = np.unique(new_indices, return_counts=True)
+    occurances = dict(zip(unique, counts))
+    print(occurances)
+
+    global coins_sizes
+
+    for k in occurances:
+        key = min(coins_sizes, key=lambda x:abs(coins_sizes[x]-occurances[k]))
+        print(f'Obiekt nr{k} to {key}')
+
+    #{0: 7, 1: 4, 2: 1, 3: 2, 4: 1}
+
+    # display_img(sure_fg)
+
+    print(f'Wykryto {count} obiekty/ów na obrazie')
+
+    return count
+
 
 
 
@@ -304,9 +322,32 @@ def get_coin_size_in_pixels(im_url):
 # current_index = 0
 # count_coins('img/monety2.jpg',   display_steps=False)
 # count_coins('img/monety14.jpg',   display_steps=False)
-count_coins('img/monety16.jpg',   tests=True)
-print(f'Rozmiar piątaka: {get_coin_size_in_pixels("img/5.jpg")}')
-# count_coins('img/monety11.jpg',  display_steps=False)
+# count_coins('img/monety16.jpg',   tests=True)
+# print(f'Rozmiar piątaka: {get_coin_size_in_pixels("img/5.jpg")}')
+
+try:
+    coins_sizes = load_obj('coins_sizes')
+except (OSError, IOError) as e:
+    coins_sizes = {
+        "5zl": get_coin_size_in_pixels("img/5.jpg"),
+        "2zl": get_coin_size_in_pixels("img/2.jpg"),
+        "1zl": get_coin_size_in_pixels("img/1.jpg"),
+        "50gr": get_coin_size_in_pixels("img/50gr.jpg"),
+        "20gr": get_coin_size_in_pixels("img/20gr.jpg"),
+        "10gr": get_coin_size_in_pixels("img/10gr.jpg"),
+        "5gr": get_coin_size_in_pixels("img/5gr.jpg"),
+        "2gr": get_coin_size_in_pixels("img/2gr.jpg"),
+        "1gr": get_coin_size_in_pixels("img/1gr.jpg"),
+    }
+
+    save_obj(coins_sizes, 'coins_sizes')
+
+
+
+
+print(coins_sizes)
+
+count_coins('img/monety15.jpg',  display_steps=False)
 # count_coins('img/monety13.jpg',  display_steps=False)
 # count_coins('img/monety14.jpg',  display_steps=False)
 
