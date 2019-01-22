@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 import pickle
 import scipy
+import math
 from skimage import io
 from scipy import misc
 
@@ -66,12 +67,6 @@ def series_of_transformations(im, tests=False, display_steps=False):
         display_img(test_image_small, 'Oryginał z wykrytymi monetami')
 
     return sure_fg
-
-
-
-#%%
-
-# segmentacja
 
 #%%
 import numpy as np
@@ -251,6 +246,69 @@ def load_obj(name ):
         return pickle.load(f)
 
 #%%
+def cog2(points):
+    x=0
+    y=0
+    for (y,x) in points:
+        x = x + x
+        y = y + y
+    x = x/len(points)
+    y = y/len(points)
+    
+    return [y, x]
+
+
+# for i in range(nb_labels):
+#     pts = getFigure(label_objects, i+1)
+    
+#     print('Liczba punktow: ',len(pts),' Srodek ciezkosci: ', cog2(pts))
+
+#%%
+from scipy.spatial import distance
+
+def compute_bb(points):
+    
+    s = len(points)
+    y,x = cog2(points)
+    
+    r = 0
+    for point in points:
+         r = r + distance.euclidean(point,(y,x))**2
+            
+    return s/(math.sqrt(2*math.pi*r))
+
+#%%
+def compute_feret(points):
+    
+    px = [x for (y,x) in points]
+    py = [y for (y,x) in points]
+    
+    fx = max(px) - min(px)
+    fy = max(py) - min(py)
+    
+    return float(fy)/float(fx) 
+
+def get_points(indices, index):
+    points = []
+
+    for y in range(len(indices)):
+        for x in range(len(indices[0])):
+            if indices[y,x] == index:
+                points.append((y,x))
+
+    return points
+
+#%%
+def compute_haralick(centroid, contours):
+    x, y = centroid
+    d_1 = 0
+    d_2 = 0
+    for i in range(len(contours)):
+        d_1 += distance.euclidean((contours[0][1], contours[0][0]),(y,x))
+        d_2 += (distance.euclidean((contours[0][1], contours[0][0]),(y,x))**2 - 1)
+    return math.sqrt((d_1**2)/(n*d_2))
+
+#%%
 def count_coins(im_url, tests=False, display_steps=False):
     """Funkcja przekształcająca obrazek i licząca ile monet znajduje sie na obrazku"""
     if not isinstance(im_url, str):
@@ -305,13 +363,25 @@ def count_coins(im_url, tests=False, display_steps=False):
 
     for k in occurances:
         key = min(coins_sizes, key=lambda x:abs(coins_sizes[x]-occurances[k]))
-        print(f'Obiekt nr{k} to {key}')
+        print(f'Obiekt nr {k}')# to {key}')
+        print(f'Moneta {key}')
+        whole_space = len(sure_fg[0]) * len(sure_fg)
+        ob_space = occurances[k]
+        print(f'Zajmuje {ob_space/whole_space * 100}% calego obrazka')
+        points = get_points(new_indices, k)
+        cog = cog2(points)
+        print(f'Srodek ciezkosci: {cog}')
+        print(f'Blair-Bliss: {compute_bb(points)}')
+        print(f'Feret: {compute_feret(points)}')
 
-    #{0: 7, 1: 4, 2: 1, 3: 2, 4: 1}
+        # _, cnts, _ = cv2.findContours(np.uint8(new_indices==k), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        # print(f'Haralick: {compute_haralick(cog, cnts)}')
 
-    # display_img(sure_fg)
+
 
     print(f'Wykryto {count} obiekty/ów na obrazie')
+
+
 
     return count
 
@@ -344,10 +414,12 @@ except (OSError, IOError) as e:
 
 
 
-
+#%%
 print(coins_sizes)
 
-count_coins('img/monety15.jpg',  display_steps=False)
+count_coins('img/monety13.jpg',  display_steps=True)
+# count_coins('img/5.jpg', display_steps=True)
+# count_coins('img/2.jpg', display_steps=True)
 # count_coins('img/monety13.jpg',  display_steps=False)
 # count_coins('img/monety14.jpg',  display_steps=False)
 

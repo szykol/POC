@@ -1,6 +1,8 @@
 // te pliki będą wyłączone z projektu
 
 // img/
+img/monety
+*.zip
 *.rar
 test.png
 __pycache__/
