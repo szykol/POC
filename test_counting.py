@@ -8,10 +8,15 @@ class TestCounting(unittest.TestCase):
         """Sprawdza czy monety liczone są poprawnie"""
 
         for i in range(1, 14):
-            self.assertEqual(self.func(f'img/monety{i}.jpg'), 18)
+            print(f'Dla {i}')
+            self.assertEqual(self.func(f'img/monety{i}.jpg'), (18, 21.2))
         
-        self.assertEqual(self.func('img/monety14.jpg'), 28)
-        self.assertEqual(self.func('img/monety15.jpg'), 9)
+        print('Dla 14')
+
+        self.assertEqual(self.func('img/monety14.jpg')[0], 28)
+        print('Dla 15')
+
+        self.assertEqual(self.func('img/monety15.jpg')[0], 9)
     
     def test_incorrect_name(self):
         """Sprawdza czy funkcja zwraca błąd gdy nie ma takiego pliku"""

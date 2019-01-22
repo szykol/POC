@@ -21,6 +21,7 @@ def display_img(im, title='default', cmap='gray'):
     plt.show()
 
 
+#%%
 def series_of_transformations(im, tests=False, display_steps=False):
     test_image_small = scipy.misc.imresize(im, 0.2)
     # test_image_small = cv2.resize(test_image, (450,230))
@@ -42,25 +43,36 @@ def series_of_transformations(im, tests=False, display_steps=False):
     if display_steps:
         display_img(test_bin, 'Binarny')
 
+    
     # przeksztalcenie morfologiczne - zamkniecie
     kernel = np.ones((5, 5), np.uint8)
-    closing = cv2.morphologyEx(test_bin, cv2.MORPH_CLOSE, kernel, iterations=1)
+    # closing = cv2.morphologyEx(test_bin, cv2.MORPH_CLOSE, kernel, iterations=1)
+    # closing = test_bin.copy()
 
-    if display_steps:
-        display_img(closing)
+    
+    closing = cv2.erode(test_bin,kernel,iterations = 6)
+    if not tests:
+        display_img(closing, 'Po erozji')
+    
+
+    # if display_steps: 
+    #     display_img(closing)
 
     # znajdowanie tla
-    kernel = np.ones((5, 5), np.uint8)
-    sure_bg = cv2.dilate(closing, kernel, iterations=3)
+    kernel = np.ones((3, 3), np.uint8)
+    sure_fg = cv2.dilate(closing, kernel, iterations=2)
+
+    return sure_fg
 
     # Znajdowanie pewnego pierwszego planu
-    dist_transform = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
+    dist_transform = cv2.distanceTransform(closing, cv2.DIST_L2, 5)
     ret, sure_fg = cv2.threshold(
-        dist_transform, 0.5*dist_transform.max(), 255, 0)
+        dist_transform, 0.3*dist_transform.max(), 255, 0)
 
     # Znajdowanie nieznanego regionu
     sure_fg = np.uint8(sure_fg)
-    unknown = cv2.subtract(sure_bg, sure_fg)
+    
+    sure_fg = cv2.dilate(sure_fg,kernel,iterations = 3)
 
     if display_steps:
         display_img(dist_transform, 'Dist transform')
@@ -181,7 +193,7 @@ def clear_indices(indices):
 # %%
 
 
-def color_objects(image, indices):
+def color_objects(indices):
     """ Funkcja kolorująca wszystkie obiekty na inny kolor """
     max_index = np.amax(indices)
     # colored = np.zeros_like(image, dtype=tuple)
@@ -195,11 +207,21 @@ def color_objects(image, indices):
 # %%
 
 
-def color_index(image, indices, index):
+def color_index(indices, index):
     """ Funkcja kolorująca tylko dany indeks """
     colored = np.zeros((len(indices), len(indices[0]), 3), np.uint8)
     colored[indices == index] = (255, 0, 255)
-    display_img(colored, f'obiekt nr. {index}')
+    # display_img(colored, f'obiekt nr. {index}')
+
+    return colored
+
+def color_index_with_others(im, indices, index):
+    """ Funkcja kolorująca tylko dany indeks """
+    colored = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+    colored[indices == index] = (255, 0, 255)
+    # display_img(colored, f'obiekt nr. {index}')
+
+    return colored 
 
 
 def get_coin_size_in_pixels(im_url):
@@ -243,46 +265,43 @@ def load_obj(name):
 
 # %%
 
-
 def cog2(points):
-    x = 0
-    y = 0
-    for (y, x) in points:
-        x = x + x
-        y = y + y
-    x = x/len(points)
-    y = y/len(points)
-
-    return [y, x]
+    mx=0
+    my=0
+    for (y,x) in points:
+        mx = mx + x
+        my = my + y
+    mx = mx/len(points)
+    my = my/len(points)
+    
+    return [my, mx]
 
 
 # %%
 
 
 def compute_bb(points):
-
     s = len(points)
-    y, x = cog2(points)
-
+    my,mx = cog2(points)
+    
     r = 0
     for point in points:
-        r = r + distance.euclidean(point, (y, x))**2
-
+         r = r + distance.euclidean(point,(my,mx))**2
+            
     return s/(math.sqrt(2*math.pi*r))
 
 # %%
 
 
 def compute_feret(points):
-
-    px = [x for (y, x) in points]
-    py = [y for (y, x) in points]
-
+    
+    px = [x for (y,x) in points]
+    py = [y for (y,x) in points]
+    
     fx = max(px) - min(px)
     fy = max(py) - min(py)
-
-    return float(fy)/float(fx)
-
+    
+    return float(fy)/float(fx)  
 
 def get_points(indices, index):
     points = []
@@ -351,8 +370,8 @@ def count_coins(im_url, tests=False, display_steps=False):
     # new_image = color_objects(image, new_indices)
 
     count = len(np.unique(new_indices)) - 1
-    for i in range(count + 1):
-        color_index(sure_fg, new_indices, i)
+    # for i in range(count + 1):
+    #     color_index(new_indices, i)
 
     # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
     unique, counts = np.unique(new_indices, return_counts=True)
@@ -361,10 +380,17 @@ def count_coins(im_url, tests=False, display_steps=False):
 
     global coins_sizes
 
+    suma = 0
     for k in occurances:
+        if k == -1:
+            continue
+        coin = color_index_with_others(sure_fg, new_indices, k)
+        if not tests:
+            display_img(coin, f'Moneta nr {k}')
         key = min(coins_sizes, key=lambda x: abs(coins_sizes[x]-occurances[k]))
         print(f'Obiekt nr {k}')  # to {key}')
         print(f'Moneta {key}')
+        suma+=coins_amm[key]
         whole_space = len(sure_fg[0]) * len(sure_fg)
         ob_space = occurances[k]
         print(f'Zajmuje {ob_space/whole_space * 100}% calego obrazka')
@@ -373,13 +399,17 @@ def count_coins(im_url, tests=False, display_steps=False):
         print(f'Srodek ciezkosci: {cog}')
         print(f'Blair-Bliss: {compute_bb(points)}')
         print(f'Feret: {compute_feret(points)}')
+        print(occurances[k])
+        print(len(points))
 
         # _, cnts, _ = cv2.findContours(np.uint8(new_indices==k), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         # print(f'Haralick: {compute_haralick(cog, cnts)}')
 
+    suma = round(suma, 2)
     print(f'Wykryto {count} obiekty/ów na obrazie')
+    print(f'Suma nominalów: {suma}')
 
-    return count
+    return count, suma
 
 
 # %%
@@ -405,11 +435,36 @@ except (OSError, IOError) as e:
 
     save_obj(coins_sizes, 'coins_sizes')
 
+coins_amm = {
+    "5zl": 5,
+    "2zl": 2,
+    "1zl": 1,
+    "50gr": 0.5,
+    "20gr": 0.2,
+    "10gr": 0.1,
+    "5gr": 0.05,
+    "2gr": 0.02,
+    "1gr": 0.01
+}
+
+# coins_sizes = {
+#     "5zl": get_coin_size_in_pixels("img/5.jpg"),
+#     "2zl": get_coin_size_in_pixels("img/2.jpg"),
+#     "1zl": get_coin_size_in_pixels("img/1.jpg"),
+#     "50gr": get_coin_size_in_pixels("img/50gr.jpg"),
+#     "20gr": get_coin_size_in_pixels("img/20gr.jpg"),
+#     "10gr": get_coin_size_in_pixels("img/10gr.jpg"),
+#     "5gr": get_coin_size_in_pixels("img/5gr.jpg"),
+#     "2gr": get_coin_size_in_pixels("img/2gr.jpg"),
+#     "1gr": get_coin_size_in_pixels("img/1gr.jpg"),
+# }
+
 
 # %%
 print(coins_sizes)
 
 count_coins('img/monety1.jpg',  display_steps=True)
+# count_coins('img/1gr.jpg', display_steps=True)
 # count_coins('img/5.jpg', display_steps=True)
 # count_coins('img/2.jpg', display_steps=True)
 # count_coins('img/monety13.jpg',  display_steps=False)
