@@ -315,16 +315,15 @@ def get_points(indices, index):
 
 # %%
 
-
-def compute_haralick(centroid, contours):
-    x, y = centroid
-    d_1 = 0
-    d_2 = 0
-    for i in range(len(contours)):
-        d_1 += distance.euclidean((contours[0][1], contours[0][0]), (y, x))
-        d_2 += (distance.euclidean((contours[0]
-                                    [1], contours[0][0]), (y, x))**2 - 1)
-    return math.sqrt((d_1**2)/(n*d_2))
+def count_haralick(centroid, contours):
+    n = len(contours)
+    my, mx = centroid
+    a1 = 0
+    a2 = 0
+    for i in range(n):
+        a1 += distance.euclidean((contours[i][0][1], contours[i][0][0]),(my,mx))
+        a2 += (distance.euclidean((contours[i][0][1], contours[i][0][0]),(my,mx))**2 - 1)
+    return math.sqrt((a1**2)/(n*a2))
 
 # %%
 
@@ -370,10 +369,7 @@ def count_coins(im_url, tests=False, display_steps=False):
     # new_image = color_objects(image, new_indices)
 
     count = len(np.unique(new_indices)) - 1
-    # for i in range(count + 1):
-    #     color_index(new_indices, i)
 
-    # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
     unique, counts = np.unique(new_indices, return_counts=True)
     occurances = dict(zip(unique, counts))
     print(occurances)
@@ -399,11 +395,19 @@ def count_coins(im_url, tests=False, display_steps=False):
         print(f'Srodek ciezkosci: {cog}')
         print(f'Blair-Bliss: {compute_bb(points)}')
         print(f'Feret: {compute_feret(points)}')
-        print(occurances[k])
-        print(len(points))
+        # print(occurances[k])
+        # print(len(points))
 
-        # _, cnts, _ = cv2.findContours(np.uint8(new_indices==k), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        # print(f'Haralick: {compute_haralick(cog, cnts)}')
+
+        x = 0
+        tab = []
+        while x < len(unique):
+            _, cnts, _ = cv2.findContours(np.uint8(sure_fg[new_indices==k]), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            for c in cnts:
+                tab.append(c)
+            x += 1
+
+        print(f'Haralick: {count_haralick(cog, tab[k])}')
 
     suma = round(suma, 2)
     print(f'Wykryto {count} obiekty/ów na obrazie')
@@ -413,11 +417,7 @@ def count_coins(im_url, tests=False, display_steps=False):
 
 
 # %%
-# current_index = 0
-# count_coins('img/monety2.jpg',   display_steps=False)
-# count_coins('img/monety14.jpg',   display_steps=False)
-# count_coins('img/monety16.jpg',   tests=True)
-# print(f'Rozmiar piątaka: {get_coin_size_in_pixels("img/5.jpg")}')
+
 try:
     coins_sizes = load_obj('coins_sizes')
 except (OSError, IOError) as e:
@@ -447,28 +447,8 @@ coins_amm = {
     "1gr": 0.01
 }
 
-# coins_sizes = {
-#     "5zl": get_coin_size_in_pixels("img/5.jpg"),
-#     "2zl": get_coin_size_in_pixels("img/2.jpg"),
-#     "1zl": get_coin_size_in_pixels("img/1.jpg"),
-#     "50gr": get_coin_size_in_pixels("img/50gr.jpg"),
-#     "20gr": get_coin_size_in_pixels("img/20gr.jpg"),
-#     "10gr": get_coin_size_in_pixels("img/10gr.jpg"),
-#     "5gr": get_coin_size_in_pixels("img/5gr.jpg"),
-#     "2gr": get_coin_size_in_pixels("img/2gr.jpg"),
-#     "1gr": get_coin_size_in_pixels("img/1gr.jpg"),
-# }
-
 
 # %%
 print(coins_sizes)
 
 count_coins('img/monety1.jpg',  display_steps=True)
-# count_coins('img/1gr.jpg', display_steps=True)
-# count_coins('img/5.jpg', display_steps=True)
-# count_coins('img/2.jpg', display_steps=True)
-# count_coins('img/monety13.jpg',  display_steps=False)
-# count_coins('img/monety14.jpg',  display_steps=False)
-
-# for i in range(1, 16):
-#     count_coins(f'img/monety{i}.jpg', tests=True)
