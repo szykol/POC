@@ -15,7 +15,7 @@ from scipy import misc
 
 def display_img(im, title='default', cmap='gray'):
     """Funkcja wyświetlająca obrazek"""
-    plt.figure(figsize=(15, 15))
+    plt.figure(figsize=(8, 8))
     plt.imshow(im, cmap=cmap)
     plt.title(title)
     plt.show()
@@ -449,6 +449,13 @@ coins_amm = {
 
 
 # %%
+def smaller_img(im_url):
+    im = io.imread(im_url)
+    test_image_small = scipy.misc.imresize(im, 0.2)
+    im_url = im_url.replace('.jpg', '')
+    io.imsave(f'{im_url}_smaller.jpg', test_image_small)
+
+#%%
 print(coins_sizes)
 
-count_coins('img/monety1.jpg',  display_steps=True)
+count_coins('img/monety10.jpg',  display_steps=True)
